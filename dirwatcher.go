@@ -9,6 +9,8 @@ import
 	"log"
 )
 
+
+//TODO: Append http for view
 type 
 (
 	taskfunc func (string)
@@ -20,7 +22,9 @@ type DirWatcher struct{
 	dirchanges map[string]time.Time
 	triggers []taskfunc
 	mutex sync.Mutex
+	isstarted bool
 }
+
 
 func Init()*DirWatcher {
 	dirwatch := new(DirWatcher)
@@ -28,6 +32,7 @@ func Init()*DirWatcher {
 	dirwatch.changes = make(map[string]time.Time)
 	dirwatch.dirchanges = make(map[string]time.Time)
 	dirwatch.triggers = []taskfunc{}
+	dirwatch.isstarted = false
 	return dirwatch
 }
 
@@ -36,7 +41,6 @@ func Init()*DirWatcher {
 */
 func (d*DirWatcher) AddDir(path string){
 	d.dirs = append(d.dirs, path)
-	fmt.Println(d.dirs)
 }
 
 /*
@@ -86,10 +90,13 @@ func (d*DirWatcher) getAllFromDir(path string){
             	info := f.ModTime()
             	item, ok := d.changes[name]
             	if !ok{
+            		if d.isstarted{
+            			fmt.Println("This file was append: ", name)
+            		}
             		d.changes[name] = info
             	} else{
             		if item != info{
-            			fmt.Println(name)
+            			fmt.Println("This file is changed: ", name)
             			d.changes[name] = info
             			d.checkTriggers(name)
             		}
@@ -97,6 +104,7 @@ func (d*DirWatcher) getAllFromDir(path string){
 
             }
     }
+    d.isstarted = true
 }
 
 func (d*DirWatcher) checkTriggers(path string){
