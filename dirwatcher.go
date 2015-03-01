@@ -23,18 +23,40 @@ type DirWatcher struct{
 	triggers []taskfunc
 	mutex sync.Mutex
 	isstarted bool
+	//If Notify in Options is true
+	notshowinfo bool
+	tick *time.Ticker
+	//Statistics
+	stat Stat
 }
 
+type Options struct {
+	//Show messages about append, modify etc
+	Notshowinfo bool
 
-func Init()*DirWatcher {
+	//Show statistics every n seconds
+	Showstat uint
+}
+
+//Statistics
+type Stat struct {
+	total_append uint
+	total_changed uint
+}
+
+func Init(opt ...Options)*DirWatcher {
 	dirwatch := new(DirWatcher)
 	dirwatch.dirs = []string{}
 	dirwatch.changes = make(map[string]time.Time)
 	dirwatch.dirchanges = make(map[string]time.Time)
 	dirwatch.triggers = []taskfunc{}
 	dirwatch.isstarted = false
+	if len(opt) > 0 && opt[0].Notshowinfo == true {
+		dirwatch.notshowinfo = true
+	}
 	return dirwatch
 }
+
 
 /* 
 	Append new directory for watching
@@ -42,6 +64,7 @@ func Init()*DirWatcher {
 func (d*DirWatcher) AddDir(path string){
 	d.dirs = append(d.dirs, path)
 }
+
 
 /*
 	Append new Task
@@ -91,20 +114,35 @@ func (d*DirWatcher) getAllFromDir(path string){
             	item, ok := d.changes[name]
             	if !ok{
             		if d.isstarted{
-            			fmt.Println("This file was append: ", name)
+            			d.mutex.Lock()
+            			d.stat.total_append += 1
+            			d.mutex.Unlock()
+            			d.showInfo("This file was append: "+ name)
             		}
             		d.changes[name] = info
             	} else{
             		if item != info{
-            			fmt.Println("This file is changed: ", name)
+            			d.showInfo("This file is changed: "+ name)
             			d.changes[name] = info
             			d.checkTriggers(name)
+            			d.mutex.Lock()
+            			d.stat.total_changed += 1
+            			d.mutex.Unlock()
             		}
             	}
 
             }
     }
     d.isstarted = true
+}
+
+/*
+	We can only manage "system" messages(append, remove...). It not contain triggers
+*/
+func (d*DirWatcher) showInfo(msg string){
+	if d.notshowinfo != true {
+		fmt.Println(msg)
+	}
 }
 
 func (d*DirWatcher) checkTriggers(path string){
