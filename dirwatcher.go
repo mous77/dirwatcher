@@ -25,9 +25,10 @@ type DirWatcher struct{
 	isstarted bool
 	//If Notify in Options is true
 	notshowinfo bool
-	tick *time.Ticker
+	tick time.Duration
 	//Statistics
 	stat Stat
+	runstat bool
 }
 
 type Options struct {
@@ -53,6 +54,11 @@ func Init(opt ...Options)*DirWatcher {
 	dirwatch.isstarted = false
 	if len(opt) > 0 && opt[0].Notshowinfo == true {
 		dirwatch.notshowinfo = true
+	}
+
+	if len(opt) > 0 && opt[0].Showstat > 0{
+		dirwatch.runstat = true
+		dirwatch.tick = (8*time.Second)
 	}
 	return dirwatch
 }
@@ -86,6 +92,9 @@ func (d*DirWatcher) AddTrigger(somefunc taskfunc){
 	Start working of dirwatcher
 */
 func (d*DirWatcher) Run(){
+	if d.runstat == true {
+		go d.tickEvery()
+	}
 	fmt.Println("Start dirwatcher")
 	for {
 		for _ ,dir:= range d.dirs {
@@ -150,5 +159,17 @@ func (d*DirWatcher) checkTriggers(path string){
 		d.mutex.Lock()
 		go trigger(path)
 		d.mutex.Unlock()
+	}
+}
+
+func (d*DirWatcher) tickEvery(){
+	for i := range time.Tick(d.tick){
+		go func(){
+			d.mutex.Lock()
+			fmt.Println(i)
+			fmt.Println("Total append: ", d.stat.total_append)
+			fmt.Println("Total changed: ", d.stat.total_changed)
+			d.mutex.Unlock()
+		}()
 	}
 }
