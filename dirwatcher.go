@@ -29,9 +29,13 @@ type EventData struct {
 }
 
 type DirWatcher struct{
+	//All directories for watching
 	dirs [] string
+	//All files durning watching
 	changes map[string]time.Time
+	//All directories dyrning watching
 	dirchanges map[string]time.Time
+	exceptions map[string]bool
 	triggers []EventData
 	mutex sync.Mutex
 	isstarted []bool
@@ -41,6 +45,7 @@ type DirWatcher struct{
 	//Statistics
 	stat Stat
 	runstat bool
+	file *os.File
 }
 
 
@@ -53,6 +58,9 @@ type Options struct {
 
 	//Show initial append files
 	Showinitappend bool
+
+	//Log for output
+	Logfile string
 }
 
 
@@ -65,6 +73,7 @@ type Stat struct {
 func Init(opt ...Options)*DirWatcher {
 	dirwatch := new(DirWatcher)
 	dirwatch.dirs = []string{}
+	dirwatch.exceptions = make(map[string]bool)
 	dirwatch.changes = make(map[string]time.Time)
 	dirwatch.dirchanges = make(map[string]time.Time)
 	//dirwatch.triggers = []taskfunc{}
@@ -74,6 +83,14 @@ func Init(opt ...Options)*DirWatcher {
 		dirwatch.notshowinfo = true
 	}
 
+	/*
+	Show statistics(Stat) after n seconds
+
+	Statistics will be in this format (by default):
+	2015-03-22 21:44:17.405990879 +0500 YEKT
+	Total append:  1
+	Total changed:  1
+	*/
 	if len(opt) > 0 && opt[0].Showstat > 0{
 		dirwatch.runstat = true
 		dirwatch.tick = (8*time.Second)
@@ -81,6 +98,15 @@ func Init(opt ...Options)*DirWatcher {
 
 	if len(opt) > 0 && opt[0].Showinitappend == true {
 		fmt.Println(opt)
+	}
+
+	if len(opt) > 0 && opt[0].Logfile != ""{
+		Logfile := opt[0].Logfile
+		f, err := os.Create(Logfile)
+		if err == nil {
+			dirwatch.file = f
+			dirwatch.exceptions[Logfile] = true
+		}
 	}
 	return dirwatch
 }
@@ -150,7 +176,8 @@ func (d*DirWatcher) getAllFromDir(path string, i int){
             		}
             		d.changes[fullpath] = info
             	} else{
-            		if item != info{
+            		_, errcon := d.exceptions[fullpath]
+            		if item != info && !errcon{
             			d.showInfo("This file is changed: "+ fullpath)
             			d.changes[fullpath] = info
             			d.checkTriggers(name, Event {Changing: true})
@@ -172,6 +199,13 @@ func (d*DirWatcher) getAllFromDir(path string, i int){
 func (d*DirWatcher) showInfo(msg string){
 	if d.notshowinfo != true {
 		fmt.Println(msg)
+	}
+
+	if d.file != nil {
+		d.mutex.Lock()
+		d.file.WriteString(msg)
+		d.file.WriteString("\n")
+		d.mutex.Unlock()
 	}
 }
 
