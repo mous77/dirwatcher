@@ -139,13 +139,16 @@ func (d*DirWatcher) Run(){
 	if d.runstat == true {
 		go d.tickEvery()
 	}
+
+	if(len(d.dirs) == 0) {
+		panic("Not found directory for watching")
+	}
 	fmt.Println("Start dirwatcher")
 	d.loopstarted = true
 	for {
 		for i ,dir:= range d.dirs {
 			d.getAllFromDir(dir, i)
 		}
-		fmt.Println(d.loopstarted)
 		if(!d.loopstarted) {
 			break
 		}
