@@ -45,6 +45,7 @@ type DirWatcher struct{
 	//Statistics
 	stat Stat
 	runstat bool
+	loopstarted bool
 	file *os.File
 }
 
@@ -139,12 +140,22 @@ func (d*DirWatcher) Run(){
 		go d.tickEvery()
 	}
 	fmt.Println("Start dirwatcher")
+	d.loopstarted = true
 	for {
 		for i ,dir:= range d.dirs {
 			d.getAllFromDir(dir, i)
 		}
+		fmt.Println(d.loopstarted)
+		if(!d.loopstarted) {
+			break
+		}
 		time.Sleep(100 * time.Millisecond)
 	}
+}
+
+//Stop the main loop
+func (d*DirWatcher) Stop (){
+	d.loopstarted = false
 }
 
 func CreateDir (path string){
