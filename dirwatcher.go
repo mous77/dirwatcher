@@ -13,7 +13,7 @@ import
 //TODO: Append http for view
 type 
 (
-	taskfunc func (string)
+	taskfunc func (string, *DirWatcher)
 )
 
 /* Struct for define, when trigger happens. */
@@ -117,6 +117,11 @@ func Init(opt ...Options)*DirWatcher {
 	Append new directory for watching
 */
 func (d*DirWatcher) AddDir(path string){
+	for _, name := range d.dirs{
+		if(path == name) {
+			return 
+		}
+	}
 	d.dirs = append(d.dirs, path)
 	d.isstarted = append(d.isstarted, false)
 	//d.isstarted[0] = false
@@ -129,6 +134,11 @@ func (d*DirWatcher) AddDir(path string){
 */
 
 func (d*DirWatcher) AddTrigger(somefunc taskfunc,  event ... Event){
+	for _, funcaddr := range d.triggers {
+		if(&somefunc == &funcaddr.trigger){
+			return 
+		}
+	}
 	d.triggers = append(d.triggers, EventData {somefunc, event[0]})
 }
 
@@ -227,10 +237,10 @@ func (d*DirWatcher) checkTriggers(path string, typedata Event){
 	for _, value := range d.triggers{
 		d.mutex.Lock()
 		if value.event.Changing == true && typedata.Changing == true{
-			go value.trigger(path)
+			go value.trigger(path, d)
 		}
 		if value.event.Remove == true && typedata.Remove == true {
-			go value.trigger(path)
+			go value.trigger(path, d)
 		}
 		d.mutex.Unlock()
 	}
