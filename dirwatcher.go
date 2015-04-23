@@ -7,6 +7,8 @@ import
 	"sync"
 	"time"
 	"log"
+	"path"
+	"io"
 )
 
 
@@ -47,6 +49,8 @@ type DirWatcher struct{
 	runstat bool
 	loopstarted bool
 	file *os.File
+	//directory for backup files
+	backupdir string
 }
 
 
@@ -62,6 +66,9 @@ type Options struct {
 
 	//Log for output
 	Logfile string
+
+	//Directory for backup files
+	Backup string
 }
 
 
@@ -109,9 +116,45 @@ func Init(opt ...Options)*DirWatcher {
 			dirwatch.exceptions[Logfile] = true
 		}
 	}
+
+	if len(opt) > 0 && opt[0].Backup != "" {
+		dirwatch.backupdir = opt[0].Backup
+		_, err := os.Stat(dirwatch.backupdir)
+		if err != nil {
+			os.Mkdir(dirwatch.backupdir, 0777)
+		}
+	}
 	return dirwatch
 }
 
+/*
+	Copy files to backup dir before starting of watching
+*/
+func (d*DirWatcher) copyToBackup(){
+	fmt.Println("Copt files to backup dir(**Test version**)")
+	for _, dirname := range d.dirs {
+		files, err := ioutil.ReadDir(dirname)
+		if err != nil{
+			log.Fatal("Cant find target dir")
+		}
+
+		for _, pathvalue := range files {
+			fullpath := dirname + "/" + pathvalue.Name()
+			if checker, _ := os.Stat(fullpath); checker.IsDir() {
+				continue
+			}
+			filedata, _ := os.Open(fullpath)
+			backupfile, err := os.Create(d.backupdir + "/" + path.Base(pathvalue.Name()))
+			if err != nil {
+				panic(err)
+			}
+			_, errcopy := io.Copy(backupfile, filedata)
+			if errcopy != nil {
+				panic(err)
+			}
+		}	
+	}
+}
 
 /* 
 	Append new directory for watching
@@ -152,6 +195,10 @@ func (d*DirWatcher) Run(){
 
 	if(len(d.dirs) == 0) {
 		panic("Not found directory for watching")
+	}
+
+	if(d.backupdir != "") {
+		d.copyToBackup()
 	}
 	fmt.Println("Start dirwatcher")
 	d.loopstarted = true
