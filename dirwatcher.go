@@ -185,9 +185,14 @@ func (d*DirWatcher) AddTrigger(somefunc taskfunc,  event ... Event){
 	d.triggers = append(d.triggers, EventData {somefunc, event[0]})
 }
 
-/*
-	Start working of dirwatcher
-*/
+func (d*DirWatcher) showDirs(){
+	fmt.Println("Watching directories:")
+	for _, dir := range d.dirs {
+		fmt.Println(dir)
+	}
+}
+
+//Run is start working of dirwatcher
 func (d*DirWatcher) Run(){
 	if d.runstat == true {
 		go d.tickEvery()
@@ -200,6 +205,8 @@ func (d*DirWatcher) Run(){
 	if(d.backupdir != "") {
 		d.copyToBackup()
 	}
+	
+	d.showDirs()
 	fmt.Println("Start dirwatcher")
 	d.loopstarted = true
 	for {
