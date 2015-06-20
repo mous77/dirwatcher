@@ -6,11 +6,12 @@ import
 	"io/ioutil"
 	"sync"
 	"time"
-	"log"
+	"github.com/op/go-logging"
 	"path"
 	"io"
 )
 
+var log = logging.MustGetLogger("lightstore_log")
 
 //TODO: Append http for view
 type 
