@@ -78,6 +78,13 @@ type Stat struct {
 	total_changed uint
 }
 
+//DirWatcherRequest provides actions after POST
+//action can be [add, remove]
+type DirWatcherRequest struct {
+	Path string
+	Action string
+}
+
 func Init(opt ...Options) *DirWatcher {
 	dirwatch := new(DirWatcher)
 	dirwatch.dirs = []string{}
@@ -227,7 +234,19 @@ func (d *DirWatcher) RunServer() {
 	api.Use(rest.DefaultDevStack...)
 	router, err := rest.MakeRouter(
 		&rest.Route{"POST", "/dirwatcher", func(w rest.ResponseWriter, r *rest.Request){
-			w.WriteJson("Element was append")
+			dwreq := DirWatcherRequest{}
+			report := ""
+			err := r.DecodeJsonPayload(&dwreq)
+			if err != nil {
+        		rest.Error(w, err.Error(), http.StatusInternalServerError)
+        		return
+    		}
+
+    		if dwreq.Path != "" && dwreq.Action == "add" {
+    			d.AddDir(dwreq.Path)
+    			report += fmt.Sprintf("Add new dir %s\n", dwreq.Path)
+    		}
+			w.WriteJson(report)
 		}},
 	)
 
