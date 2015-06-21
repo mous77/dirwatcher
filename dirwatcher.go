@@ -177,6 +177,17 @@ func (d *DirWatcher) AddDir(path string) {
 	//d.isstarted[0] = false
 }
 
+
+//removeDir, works only with POST request
+func (d *DirWatcher) removeDir(path string) {
+	for i, name := range d.dirs {
+		if path == name {
+			d.dirs = append(d.dirs[:i], d.dirs[i+1:]...)
+			return
+		}
+	}
+}
+
 /*
 	Append new traigger. (For example, do it something, when has changed specific file)
 
@@ -241,10 +252,15 @@ func (d *DirWatcher) RunServer() {
         		rest.Error(w, err.Error(), http.StatusInternalServerError)
         		return
     		}
-
+    		fmt.Println(dwreq.Path, dwreq.Action)
     		if dwreq.Path != "" && dwreq.Action == "add" {
     			d.AddDir(dwreq.Path)
-    			report += fmt.Sprintf("Add new dir %s\n", dwreq.Path)
+    			report += fmt.Sprintf("Add new dir %s \n", dwreq.Path)
+    		}
+
+    		if dwreq.Path != "" && dwreq.Action == "remove" {
+    			d.removeDir(dwreq.Path)
+    			report += fmt.Sprintf("Remove dir %s \n", dwreq.Path)
     		}
 			w.WriteJson(report)
 		}},
