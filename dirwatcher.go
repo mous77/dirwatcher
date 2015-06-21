@@ -53,6 +53,7 @@ type DirWatcher struct {
 	file        *os.File
 	//directory for backup files
 	backupdir string
+	server bool
 }
 
 type Options struct {
@@ -70,6 +71,9 @@ type Options struct {
 
 	//Directory for backup files
 	Backup string
+
+	//Start server(in this stage, run server with default options)
+	Server bool
 }
 
 //Statistics
@@ -130,6 +134,10 @@ func Init(opt ...Options) *DirWatcher {
 		if err != nil {
 			os.Mkdir(dirwatch.backupdir, 0777)
 		}
+	}
+
+	if len(opt) > 0 && opt[0].Server == true {
+		dirwatch.server = true
 	}
 	return dirwatch
 }
@@ -226,7 +234,9 @@ func (d *DirWatcher) Run() {
 	d.showDirs()
 	fmt.Println("Start dirwatcher")
 	d.loopstarted = true
-	go d.RunServer()
+	if d.server {
+		go d.runServer()
+	}
 	for {
 		for i, dir := range d.dirs {
 			d.getAllFromDir(dir, i)
@@ -240,7 +250,7 @@ func (d *DirWatcher) Run() {
 
 
 //RunServer starts rest server
-func (d *DirWatcher) RunServer() {
+func (d *DirWatcher) runServer() {
 	api := rest.NewApi()
 	api.Use(rest.DefaultDevStack...)
 	router, err := rest.MakeRouter(
