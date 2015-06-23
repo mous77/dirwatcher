@@ -54,6 +54,9 @@ type DirWatcher struct {
 	//directory for backup files
 	backupdir string
 	server bool
+
+	//This command stops main loop
+	stop bool
 }
 
 type Options struct {
@@ -98,6 +101,7 @@ func Init(opt ...Options) *DirWatcher {
 	//dirwatch.triggers = []taskfunc{}
 	dirwatch.triggers = []EventData{}
 	dirwatch.isstarted = []bool{}
+	dirwatch.stop = false
 	if len(opt) > 0 && opt[0].Notshowinfo == true {
 		dirwatch.notshowinfo = true
 	}
@@ -238,6 +242,10 @@ func (d *DirWatcher) Run() {
 		go d.runServer()
 	}
 	for {
+		if d.stop {
+			break
+		}
+
 		for i, dir := range d.dirs {
 			d.getAllFromDir(dir, i)
 		}
@@ -262,7 +270,6 @@ func (d *DirWatcher) runServer() {
         		rest.Error(w, err.Error(), http.StatusInternalServerError)
         		return
     		}
-    		fmt.Println(dwreq.Path, dwreq.Action)
     		if dwreq.Path != "" && dwreq.Action == "add" {
     			d.AddDir(dwreq.Path)
     			report += fmt.Sprintf("Add new dir %s \n", dwreq.Path)
@@ -271,6 +278,10 @@ func (d *DirWatcher) runServer() {
     		if dwreq.Path != "" && dwreq.Action == "remove" {
     			d.removeDir(dwreq.Path)
     			report += fmt.Sprintf("Remove dir %s \n", dwreq.Path)
+    		}
+
+    		if dwreq.Action == "stop" {
+    			d.stop = true
     		}
 			w.WriteJson(report)
 		}},
