@@ -3,6 +3,8 @@ Show changes in directory
 
 Work in progress
 
+Supported events: add, change, remove
+
 ## Usage
 ```go
 watcher := dirwatcher.Init(dirwatcher.Options{Showstat: 10, Logfile: "./log"})
