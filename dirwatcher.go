@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 	"net/http"
+	"path/filepath"
 )
 
 var log = logging.MustGetLogger("lightstore_log")
@@ -345,6 +346,13 @@ func (d *DirWatcher) getAllFromDir(path string, i int) {
 		}
 	}
 	d.isstarted[i] = true //; Note: Works only for one dir
+}
+
+func (d *DirWatcher) recursive(path string) {
+	filepath.Walk(path, func (path string, f os.FileInfo, err error) error {
+		fmt.Println(path)
+		return nil
+	})
 }
 
 /*
