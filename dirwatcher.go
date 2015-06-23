@@ -58,6 +58,10 @@ type DirWatcher struct {
 
 	//This command stops main loop
 	stop bool
+
+	//All file names in directories
+	allfilenames []string
+	currentfilenames []string
 }
 
 type Options struct {
@@ -242,6 +246,7 @@ func (d *DirWatcher) Run() {
 	if d.server {
 		go d.runServer()
 	}
+
 	for {
 		if d.stop {
 			break
@@ -249,6 +254,17 @@ func (d *DirWatcher) Run() {
 
 		for i, dir := range d.dirs {
 			d.getAllFromDir(dir, i)
+			if len(d.allfilenames) == 0 {
+				d.allfilenames = d.currentfilenames
+			} else if len(d.allfilenames) > len(d.currentfilenames) {
+				diff := difference(d.allfilenames, d.currentfilenames)
+				fmt.Println("Removed files: ")
+				for _, item := range diff {
+					fmt.Println(item)
+				}
+				d.allfilenames = d.currentfilenames
+			}
+			d.currentfilenames = []string{}
 		}
 		if !d.loopstarted {
 			break
@@ -256,6 +272,28 @@ func (d *DirWatcher) Run() {
 		time.Sleep(100 * time.Millisecond)
 	}
 }
+
+
+//This function returns file names contains in allfilenames,
+//but not contains in currentfilenames
+func difference(allfilenames, currentfilenames []string)[]string {
+	diffitems := []string{}
+	for _, afnitem := range allfilenames {
+		found := false
+		for _, cfnitem := range currentfilenames {
+			if afnitem == cfnitem {
+				found = true
+				break
+			}
+		}
+		if !found {
+			diffitems = append(diffitems, afnitem)
+		}
+	}
+
+	return diffitems
+}
+
 
 
 //RunServer starts rest server
@@ -306,6 +344,7 @@ func CreateDir(path string) {
 	os.Mkdir(path, 0777)
 }
 
+
 func (d *DirWatcher) getAllFromDir(path string, i int) {
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
@@ -318,6 +357,7 @@ func (d *DirWatcher) getAllFromDir(path string, i int) {
 			d.dirchanges[fullpath] = f.ModTime()
 		default:
 			name := f.Name()
+			d.currentfilenames = append(d.currentfilenames, name)
 			info := f.ModTime()
 			item, ok := d.changes[fullpath]
 			//Fullpath for this file
@@ -328,6 +368,7 @@ func (d *DirWatcher) getAllFromDir(path string, i int) {
 					d.mutex.Unlock()
 					d.checkTriggers(name, Event{Append: true})
 					d.showInfo("This file was append: " + fullpath)
+					d.allfilenames = append(d.allfilenames, name)
 				}
 				d.changes[fullpath] = info
 			} else {
@@ -348,6 +389,8 @@ func (d *DirWatcher) getAllFromDir(path string, i int) {
 	d.isstarted[i] = true //; Note: Works only for one dir
 }
 
+
+//TODO. Make with recursive scanning
 func (d *DirWatcher) recursive(path string) {
 	filepath.Walk(path, func (path string, f os.FileInfo, err error) error {
 		fmt.Println(path)
