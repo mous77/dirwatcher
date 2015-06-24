@@ -113,7 +113,11 @@ func Init(opt ...Options) *DirWatcher {
 	dirwatch.triggers = []EventData{}
 	dirwatch.isstarted = []bool{}
 	dirwatch.stop = false
-	if len(opt) > 0 && opt[0].Notshowinfo == true {
+
+	if len(opt) == 0 {
+		return dirwatch
+	}
+	if opt[0].Notshowinfo == true {
 		dirwatch.notshowinfo = true
 	}
 
@@ -125,16 +129,16 @@ func Init(opt ...Options) *DirWatcher {
 		Total append:  1
 		Total changed:  1
 	*/
-	if len(opt) > 0 && opt[0].Showstat > 0 {
+	if opt[0].Showstat > 0 {
 		dirwatch.runstat = true
 		dirwatch.tick = (8 * time.Second)
 	}
 
-	if len(opt) > 0 && opt[0].Showinitappend == true {
+	if opt[0].Showinitappend == true {
 		fmt.Println(opt)
 	}
 
-	if len(opt) > 0 && opt[0].Logfile != "" {
+	if opt[0].Logfile != "" {
 		Logfile := opt[0].Logfile
 		f, err := os.Create(Logfile)
 		if err == nil {
@@ -143,7 +147,7 @@ func Init(opt ...Options) *DirWatcher {
 		}
 	}
 
-	if len(opt) > 0 && opt[0].Backup != "" {
+	if opt[0].Backup != "" {
 		dirwatch.backupdir = opt[0].Backup
 		_, err := os.Stat(dirwatch.backupdir)
 		if err != nil {
@@ -151,11 +155,11 @@ func Init(opt ...Options) *DirWatcher {
 		}
 	}
 
-	if len(opt) > 0 && opt[0].Server == true {
+	if opt[0].Server == true {
 		dirwatch.server = true
 	}
 
-	if len(opt) > 0 && opt[0].Recursive == true {
+	if opt[0].Recursive == true {
 		dirwatch.recursive = true
 	}
 	return dirwatch
