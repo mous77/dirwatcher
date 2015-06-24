@@ -6,12 +6,12 @@ import (
 	"github.com/op/go-logging"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"sync"
 	"time"
-	"net/http"
-	"path/filepath"
 )
 
 var log = logging.MustGetLogger("lightstore_log")
@@ -54,14 +54,16 @@ type DirWatcher struct {
 	file        *os.File
 	//directory for backup files
 	backupdir string
-	server bool
+	server    bool
 
 	//This command stops main loop
 	stop bool
 
 	//All file names in directories
-	allfilenames []string
+	allfilenames     []string
 	currentfilenames []string
+
+	recursive bool
 }
 
 type Options struct {
@@ -82,6 +84,9 @@ type Options struct {
 
 	//Start server(in this stage, run server with default options)
 	Server bool
+
+	//This option provides wathing subdirectories
+	Recursive bool
 }
 
 //Statistics
@@ -93,7 +98,7 @@ type Stat struct {
 //DirWatcherRequest provides actions after POST
 //action can be [add, remove]
 type DirWatcherRequest struct {
-	Path string
+	Path   string
 	Action string
 }
 
@@ -148,6 +153,10 @@ func Init(opt ...Options) *DirWatcher {
 	if len(opt) > 0 && opt[0].Server == true {
 		dirwatch.server = true
 	}
+
+	if len(opt) > 0 && opt[0].Recursive == true {
+		dirwatch.recursive = true
+	}
 	return dirwatch
 }
 
@@ -193,7 +202,6 @@ func (d *DirWatcher) AddDir(path string) {
 	d.isstarted = append(d.isstarted, false)
 	//d.isstarted[0] = false
 }
-
 
 //removeDir, works only with POST request
 func (d *DirWatcher) removeDir(path string) {
@@ -273,10 +281,9 @@ func (d *DirWatcher) Run() {
 	}
 }
 
-
 //This function returns file names contains in allfilenames,
 //but not contains in currentfilenames
-func difference(allfilenames, currentfilenames []string)[]string {
+func difference(allfilenames, currentfilenames []string) []string {
 	diffitems := []string{}
 	for _, afnitem := range allfilenames {
 		found := false
@@ -294,34 +301,32 @@ func difference(allfilenames, currentfilenames []string)[]string {
 	return diffitems
 }
 
-
-
 //RunServer starts rest server
 func (d *DirWatcher) runServer() {
 	api := rest.NewApi()
 	api.Use(rest.DefaultDevStack...)
 	router, err := rest.MakeRouter(
-		&rest.Route{"POST", "/dirwatcher", func(w rest.ResponseWriter, r *rest.Request){
+		&rest.Route{"POST", "/dirwatcher", func(w rest.ResponseWriter, r *rest.Request) {
 			dwreq := DirWatcherRequest{}
 			report := ""
 			err := r.DecodeJsonPayload(&dwreq)
 			if err != nil {
-        		rest.Error(w, err.Error(), http.StatusInternalServerError)
-        		return
-    		}
-    		if dwreq.Path != "" && dwreq.Action == "add" {
-    			d.AddDir(dwreq.Path)
-    			report += fmt.Sprintf("Add new dir %s \n", dwreq.Path)
-    		}
+				rest.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			if dwreq.Path != "" && dwreq.Action == "add" {
+				d.AddDir(dwreq.Path)
+				report += fmt.Sprintf("Add new dir %s \n", dwreq.Path)
+			}
 
-    		if dwreq.Path != "" && dwreq.Action == "remove" {
-    			d.removeDir(dwreq.Path)
-    			report += fmt.Sprintf("Remove dir %s \n", dwreq.Path)
-    		}
+			if dwreq.Path != "" && dwreq.Action == "remove" {
+				d.removeDir(dwreq.Path)
+				report += fmt.Sprintf("Remove dir %s \n", dwreq.Path)
+			}
 
-    		if dwreq.Action == "stop" {
-    			d.stop = true
-    		}
+			if dwreq.Action == "stop" {
+				d.stop = true
+			}
 			w.WriteJson(report)
 		}},
 	)
@@ -330,7 +335,7 @@ func (d *DirWatcher) runServer() {
 		log.Fatal(err)
 	}
 	api.SetApp(router)
-	addr:= "localhost"
+	addr := "localhost"
 	port := 8080
 	http.ListenAndServe(fmt.Sprintf("%s:%d", addr, port), api.MakeHandler())
 }
@@ -343,7 +348,6 @@ func (d *DirWatcher) Stop() {
 func CreateDir(path string) {
 	os.Mkdir(path, 0777)
 }
-
 
 func (d *DirWatcher) getAllFromDir(path string, i int) {
 	files, err := ioutil.ReadDir(path)
@@ -389,11 +393,11 @@ func (d *DirWatcher) getAllFromDir(path string, i int) {
 	d.isstarted[i] = true //; Note: Works only for one dir
 }
 
-
 //TODO. Make with recursive scanning
-func (d *DirWatcher) recursive(path string) {
-	filepath.Walk(path, func (path string, f os.FileInfo, err error) error {
-		fmt.Println(path)
+func (d *DirWatcher) watchSubDirs(path string) {
+	allfiles := []string{}
+	filepath.Walk(path, func(path string, f os.FileInfo, err error) error {
+		allfiles = append(allfiles, f.Name())
 		return nil
 	})
 }
