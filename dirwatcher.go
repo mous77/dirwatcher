@@ -93,6 +93,7 @@ type Options struct {
 type Stat struct {
 	total_append  uint
 	total_changed uint
+	total_remove  uint
 }
 
 //DirWatcherRequest provides actions after POST
@@ -268,6 +269,7 @@ func (d *DirWatcher) Run() {
 				diff := difference(d.allfilenames, d.currentfilenames)
 				fmt.Println("Removed files: ")
 				for _, item := range diff {
+					d.stat.total_remove += 1
 					fmt.Println(item)
 				}
 				d.allfilenames = d.currentfilenames
@@ -418,7 +420,7 @@ func (d *DirWatcher) showInfo(msg string) {
 	}
 }
 
-//checkTriggers provides checking and execution triggers 
+//checkTriggers provides checking and execution triggers
 func (d *DirWatcher) checkTriggers(path string, typedata Event) {
 	for _, value := range d.triggers {
 		d.mutex.Lock()
@@ -432,7 +434,6 @@ func (d *DirWatcher) checkTriggers(path string, typedata Event) {
 	}
 }
 
-
 //tickEvery provides show statistics every n seconds
 func (d *DirWatcher) tickEvery() {
 	for i := range time.Tick(d.tick) {
@@ -441,6 +442,7 @@ func (d *DirWatcher) tickEvery() {
 			fmt.Println(i)
 			fmt.Println("Total append: ", d.stat.total_append)
 			fmt.Println("Total changed: ", d.stat.total_changed)
+			fmt.Println("Total removed: ", d.stat.total_remove)
 			d.mutex.Unlock()
 		}()
 	}
