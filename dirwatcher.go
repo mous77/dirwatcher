@@ -440,9 +440,9 @@ func (d *DirWatcher) tickEvery() {
 		go func() {
 			d.mutex.Lock()
 			fmt.Println(i)
-			fmt.Println("Total append: ", d.stat.total_append)
-			fmt.Println("Total changed: ", d.stat.total_changed)
-			fmt.Println("Total removed: ", d.stat.total_remove)
+			fmt.Println(fmt.Sprintf("Total append: %d", d.stat.total_append))
+			fmt.Println(fmt.Sprintf("Total changed: %d", d.stat.total_changed))
+			fmt.Println(fmt.Sprintf("Total removed: %d", d.stat.total_remove))
 			d.mutex.Unlock()
 		}()
 	}
