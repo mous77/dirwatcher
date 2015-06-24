@@ -418,6 +418,7 @@ func (d *DirWatcher) showInfo(msg string) {
 	}
 }
 
+//checkTriggers provides checking and execution triggers 
 func (d *DirWatcher) checkTriggers(path string, typedata Event) {
 	for _, value := range d.triggers {
 		d.mutex.Lock()
@@ -431,6 +432,8 @@ func (d *DirWatcher) checkTriggers(path string, typedata Event) {
 	}
 }
 
+
+//tickEvery provides show statistics every n seconds
 func (d *DirWatcher) tickEvery() {
 	for i := range time.Tick(d.tick) {
 		go func() {
