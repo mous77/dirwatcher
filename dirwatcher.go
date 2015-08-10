@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -63,7 +64,8 @@ type DirWatcher struct {
 	allfilenames     []string
 	currentfilenames []string
 
-	recursive bool
+	recursive    bool
+	ignorehidden bool
 }
 
 type Options struct {
@@ -87,6 +89,9 @@ type Options struct {
 
 	//This option provides wathing subdirectories
 	Recursive bool
+
+	//Ignore changes on hidden files
+	IgnoreHidden bool
 }
 
 //Statistics
@@ -162,6 +167,10 @@ func Init(opt ...Options) *DirWatcher {
 
 	if opt[0].Recursive == true {
 		dirwatch.recursive = true
+	}
+
+	if opt[0].IgnoreHidden == true {
+		dirwatch.ignorehidden = true
 	}
 	return dirwatch
 }
@@ -369,6 +378,9 @@ func (d *DirWatcher) getAllFromDir(path string, i int) {
 			d.dirchanges[fullpath] = f.ModTime()
 		default:
 			name := f.Name()
+			if d.ignorehidden && strings.HasPrefix(name, ".") {
+				continue
+			}
 			d.currentfilenames = append(d.currentfilenames, name)
 			info := f.ModTime()
 			item, ok := d.changes[fullpath]
