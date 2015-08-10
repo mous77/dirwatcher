@@ -21,7 +21,7 @@ type (
 	taskfunc func(string, *DirWatcher)
 )
 
-/* Struct for define, when trigger happens. */
+//Struct for define, when trigger happens. 
 type Event struct {
 	Changing bool
 	Append   bool
@@ -103,6 +103,8 @@ type DirWatcherRequest struct {
 	Action string
 }
 
+
+//Init provides basic initialization
 func Init(opt ...Options) *DirWatcher {
 	dirwatch := new(DirWatcher)
 	dirwatch.dirs = []string{}
@@ -165,9 +167,8 @@ func Init(opt ...Options) *DirWatcher {
 	return dirwatch
 }
 
-/*
-	Copy files to backup dir before starting of watching
-*/
+
+//Copy files to backup dir before starting of watching
 func (d *DirWatcher) copyToBackup() {
 	fmt.Println("Copt files to backup dir(**Test version**)")
 	for _, dirname := range d.dirs {
@@ -194,9 +195,7 @@ func (d *DirWatcher) copyToBackup() {
 	}
 }
 
-/*
-	Append new directory for watching
-*/
+//Append new directory for watching
 func (d *DirWatcher) AddDir(path string) {
 	for _, name := range d.dirs {
 		if path == name {
@@ -218,20 +217,18 @@ func (d *DirWatcher) removeDir(path string) {
 	}
 }
 
-/*
-	Append new traigger. (For example, do it something, when has changed specific file)
-
-*/
-
-func (d *DirWatcher) AddTrigger(somefunc taskfunc, event ...Event) {
+//AddTrigger provides append new traigger. 
+//(For example, do it something, when has changed specific file)
+func (d *DirWatcher) AddTrigger(somefunc taskfunc, event Event) {
 	for _, funcaddr := range d.triggers {
 		if &somefunc == &funcaddr.trigger {
 			return
 		}
 	}
-	d.triggers = append(d.triggers, EventData{somefunc, event[0]})
+	d.triggers = append(d.triggers, EventData{somefunc, event})
 }
 
+//showDirs shows 
 func (d *DirWatcher) showDirs() {
 	fmt.Println("Watching directories:")
 	for _, dir := range d.dirs {
@@ -355,6 +352,7 @@ func CreateDir(path string) {
 	os.Mkdir(path, 0777)
 }
 
+//getAllFromDir provides reading directory
 func (d *DirWatcher) getAllFromDir(path string, i int) {
 	files, err := ioutil.ReadDir(path)
 	if err != nil {
@@ -408,9 +406,7 @@ func (d *DirWatcher) watchSubDirs(path string) {
 	})
 }
 
-/*
-	We can only manage "system" messages(append, remove...). It not contain triggers
-*/
+//We can only manage "system" messages(append, remove...). It not contains triggers
 func (d *DirWatcher) showInfo(msg string) {
 	if d.notshowinfo != true {
 		fmt.Println(msg)
