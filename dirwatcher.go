@@ -21,7 +21,7 @@ type (
 	taskfunc func(string, *DirWatcher)
 )
 
-//Struct for define, when trigger happens. 
+//Struct for define, when trigger happens.
 type Event struct {
 	Changing bool
 	Append   bool
@@ -103,7 +103,6 @@ type DirWatcherRequest struct {
 	Action string
 }
 
-
 //Init provides basic initialization
 func Init(opt ...Options) *DirWatcher {
 	dirwatch := new(DirWatcher)
@@ -167,7 +166,6 @@ func Init(opt ...Options) *DirWatcher {
 	return dirwatch
 }
 
-
 //Copy files to backup dir before starting of watching
 func (d *DirWatcher) copyToBackup() {
 	fmt.Println("Copt files to backup dir(**Test version**)")
@@ -217,7 +215,7 @@ func (d *DirWatcher) removeDir(path string) {
 	}
 }
 
-//AddTrigger provides append new traigger. 
+//AddTrigger provides append new traigger.
 //(For example, do it something, when has changed specific file)
 func (d *DirWatcher) AddTrigger(somefunc taskfunc, event Event) {
 	for _, funcaddr := range d.triggers {
@@ -228,7 +226,7 @@ func (d *DirWatcher) AddTrigger(somefunc taskfunc, event Event) {
 	d.triggers = append(d.triggers, EventData{somefunc, event})
 }
 
-//showDirs shows 
+//showDirs shows
 func (d *DirWatcher) showDirs() {
 	fmt.Println("Watching directories:")
 	for _, dir := range d.dirs {
@@ -325,6 +323,12 @@ func (d *DirWatcher) runServer() {
 			if dwreq.Path != "" && dwreq.Action == "remove" {
 				d.removeDir(dwreq.Path)
 				report += fmt.Sprintf("Remove dir %s \n", dwreq.Path)
+			}
+
+			if dwreq.Path != "" && dwreq.Action == "info" {
+				stat := d.stat
+				report += fmt.Sprintf("Total append %d Total Changed %d Total removed %d ",
+					stat.total_append, stat.total_changed, stat.total_remove)
 			}
 
 			if dwreq.Action == "stop" {
