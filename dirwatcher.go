@@ -277,7 +277,7 @@ func (d *DirWatcher) Run() {
 				diff := difference(d.allfilenames, d.currentfilenames)
 				fmt.Println("Removed files: ")
 				for _, item := range diff {
-					d.stat.total_remove += 1
+					d.stat.total_remove++
 					fmt.Println(item)
 				}
 				d.allfilenames = d.currentfilenames
@@ -388,7 +388,7 @@ func (d *DirWatcher) getAllFromDir(path string, i int) {
 			if !ok {
 				if d.isstarted[i] {
 					d.mutex.Lock()
-					d.stat.total_append += 1
+					d.stat.total_append++
 					d.mutex.Unlock()
 					d.checkTriggers(name, Event{Append: true})
 					d.showInfo("This file was append: " + fullpath)
@@ -403,7 +403,7 @@ func (d *DirWatcher) getAllFromDir(path string, i int) {
 					d.checkTriggers(name, Event{Changing: true})
 					//d.checkTriggers(fullpath)
 					d.mutex.Lock()
-					d.stat.total_changed += 1
+					d.stat.total_changed++
 					d.mutex.Unlock()
 				}
 			}
