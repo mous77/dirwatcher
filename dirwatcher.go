@@ -55,7 +55,7 @@ type DirWatcher struct {
 	file        *os.File
 	//directory for backup files
 	backupdir string
-	server    bool
+	server    string
 
 	//This command stops main loop
 	stop bool
@@ -85,7 +85,7 @@ type Options struct {
 	Backup string
 
 	//Start server(in this stage, run server with default options)
-	Server bool
+	Server string
 
 	//This option provides wathing subdirectories
 	Recursive bool
@@ -161,8 +161,8 @@ func Init(opt ...Options) *DirWatcher {
 		}
 	}
 
-	if opt[0].Server == true {
-		dirwatch.server = true
+	if opt[0].Server != "" {
+		dirwatch.server = opt[0].Server
 	}
 
 	if opt[0].Recursive == true {
@@ -260,7 +260,7 @@ func (d *DirWatcher) Run() {
 	d.showDirs()
 	fmt.Println("Start dirwatcher")
 	d.loopstarted = true
-	if d.server {
+	if d.server != "" {
 		go d.runServer()
 	}
 
@@ -351,9 +351,7 @@ func (d *DirWatcher) runServer() {
 		log.Fatal(err)
 	}
 	api.SetApp(router)
-	addr := "localhost"
-	port := 8080
-	http.ListenAndServe(fmt.Sprintf("%s:%d", addr, port), api.MakeHandler())
+	http.ListenAndServe(d.server, api.MakeHandler())
 }
 
 //Stop the main loop
