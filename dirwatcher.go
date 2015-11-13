@@ -44,8 +44,9 @@ type DirWatcher struct {
 	exceptions map[string]bool
 
 	//All files for watching
-	files        []string
-	fileschanges map[string]time.Time
+	files         []string
+	fileschanges  map[string]time.Time
+	fileswatching bool
 
 	triggers  []EventData
 	mutex     sync.Mutex
@@ -120,6 +121,7 @@ func Init(opt ...Options) *DirWatcher {
 	dirwatch.exceptions = make(map[string]bool)
 	dirwatch.changes = make(map[string]time.Time)
 	dirwatch.dirchanges = make(map[string]time.Time)
+	dirwatch.fileschanges = make(map[string]time.Time)
 	//dirwatch.triggers = []taskfunc{}
 	dirwatch.triggers = []EventData{}
 	dirwatch.isstarted = []bool{}
@@ -259,10 +261,6 @@ func (d *DirWatcher) Run() {
 		go d.tickEvery()
 	}
 
-	if len(d.dirs) == 0 {
-		panic("Not found directory for watching")
-	}
-
 	if d.backupdir != "" {
 		d.copyToBackup()
 	}
@@ -274,6 +272,7 @@ func (d *DirWatcher) Run() {
 		go d.runServer()
 	}
 
+	go d.watchFiles()
 	for {
 		if d.stop {
 			break
@@ -439,10 +438,16 @@ func (d *DirWatcher) watchFiles() {
 				fmt.Printf("%v. %s", err, item)
 			}
 			f.Close()
+			if !d.fileswatching {
+				d.fileschanges[item] = stat.ModTime()
+			}
 			if stat.ModTime() != modtime {
+				d.fileschanges[item] = stat.ModTime()
 				fmt.Println("Change: ", item)
 			}
 		}
+		d.fileswatching = true
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 
