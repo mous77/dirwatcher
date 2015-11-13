@@ -42,9 +42,14 @@ type DirWatcher struct {
 	//All directories dyrning watching
 	dirchanges map[string]time.Time
 	exceptions map[string]bool
-	triggers   []EventData
-	mutex      sync.Mutex
-	isstarted  []bool
+
+	//All files for watching
+	files        []string
+	fileschanges map[string]time.Time
+
+	triggers  []EventData
+	mutex     sync.Mutex
+	isstarted []bool
 	//If Notify in Options is true
 	notshowinfo bool
 	tick        time.Duration
@@ -212,6 +217,11 @@ func (d *DirWatcher) AddDir(path string) {
 	d.dirs = append(d.dirs, path)
 	d.isstarted = append(d.isstarted, false)
 	//d.isstarted[0] = false
+}
+
+// AddFile provides tracking of changes in file
+func (d *DirWatcher) AddFile(path string) {
+	d.files = append(d.files, path)
 }
 
 //removeDir, works only with POST request
@@ -409,6 +419,31 @@ func (d *DirWatcher) getAllFromDir(path string, i int) {
 		}
 	}
 	d.isstarted[i] = true //; Note: Works only for one dir
+}
+
+//watchFiles provides loop over all registred files
+func (d *DirWatcher) watchFiles() {
+	for {
+		for _, item := range d.files {
+			modtime, ok := d.fileschanges[item]
+			if !ok {
+				fmt.Printf("Error: Element %s is not found", item)
+			}
+			f, err := os.Open(item)
+			if err != nil {
+				fmt.Printf("Error: ", item)
+			}
+
+			stat, err := f.Stat()
+			if err != nil {
+				fmt.Printf("%v. %s", err, item)
+			}
+			f.Close()
+			if stat.ModTime() != modtime {
+				fmt.Println("Change: ", item)
+			}
+		}
+	}
 }
 
 //TODO. Make with recursive scanning
