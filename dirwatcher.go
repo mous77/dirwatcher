@@ -47,6 +47,7 @@ type DirWatcher struct {
 	files         []string
 	fileschanges  map[string]time.Time
 	fileswatching bool
+	filetriggers  map[string]*taskfunc
 
 	triggers  []EventData
 	mutex     sync.Mutex
@@ -122,6 +123,7 @@ func Init(opt ...Options) *DirWatcher {
 	dirwatch.changes = make(map[string]time.Time)
 	dirwatch.dirchanges = make(map[string]time.Time)
 	dirwatch.fileschanges = make(map[string]time.Time)
+	dirwatch.filetriggers = make(map[string]*taskfunc)
 	//dirwatch.triggers = []taskfunc{}
 	dirwatch.triggers = []EventData{}
 	dirwatch.isstarted = []bool{}
@@ -222,8 +224,11 @@ func (d *DirWatcher) AddDir(path string) {
 }
 
 // AddFile provides tracking of changes in file
-func (d *DirWatcher) AddFile(path string) {
+func (d *DirWatcher) AddFile(path string, f taskfunc) {
 	d.files = append(d.files, path)
+	if f != nil {
+		d.filetriggers[path] = &f
+	}
 }
 
 //removeDir, works only with POST request
@@ -443,7 +448,11 @@ func (d *DirWatcher) watchFiles() {
 			}
 			if stat.ModTime() != modtime {
 				d.fileschanges[item] = stat.ModTime()
-				fmt.Println("Change: ", item)
+				trig, ok := d.filetriggers[item]
+				if ok {
+					f := *trig
+					f(item, d)
+				}
 			}
 		}
 		d.fileswatching = true
